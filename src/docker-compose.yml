@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: backend
+    container_name: sandbox-backend-compose
+    networks:
+      sandbox-net:
+        aliases:
+          - sandbox-backend-container
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: frontend
+    container_name: sandbox-frontend-compose
+    ports:
+      - "8888:8888"
+    depends_on:
+      - backend
+    networks:
+      - sandbox-net
+    restart: unless-stopped
+
+networks:
+  sandbox-net:
+    driver: bridge
