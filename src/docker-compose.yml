@@ -1,20 +1,16 @@
 services:
   backend:
-    build:
-      context: backend
-    container_name: sandbox-backend-compose
+    image: silicatium/sandbox-backend:latest
+    container_name: sandbox-backend-container
     networks:
-      sandbox-net:
-        aliases:
-          - sandbox-backend-container
+      - sandbox-net
     restart: unless-stopped
 
   frontend:
-    build:
-      context: frontend
-    container_name: sandbox-frontend-compose
+    image: silicatium/sandbox-frontend:latest
+    container_name: sandbox-frontend-container
     ports:
-      - "8888:8888"
+      - "8881:8888"
     depends_on:
       - backend
     networks:
