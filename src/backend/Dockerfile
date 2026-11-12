@@ -1,4 +1,4 @@
-ARG VERSION="0.0.1"
+ARG VERSION="1.0.1"
 
 FROM golang:alpine3.19 AS builder
 
@@ -8,10 +8,10 @@ WORKDIR /usr/src/myapp
 
 COPY . ./
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o "./build/backend-${VERSION}/app" ./cmd/api/main.go ./cmd/api/router.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o "./build/backend-${VERSION}/app" ./cmd/api
 
 
-FROM golang:alpine AS runtime
+FROM golang:alpine3.19 AS runtime
 
 ARG VERSION
 
