@@ -24,6 +24,9 @@ jobs:
   build:
     needs: version
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         component: [backend, frontend]
@@ -83,5 +86,59 @@ jobs:
     steps:
       - name: Checkout 
         uses: actions/checkout@v4
+
+      - name: Prepare .env
+        run: |
+          DEPLOY_VERSION="${{ github.event.inputs.VERSION }}"
+          if [ -z "$DEPLOY_VERSION" ]; then
+            DEPLOY_VERSION="${{ needs.version.outputs.version }}"
+          fi
+
+          echo "${{ secrets.APP_ENV_FILE }}" > .env
+          
+          REGISTRY="${{ vars.IMAGE_REGISTRY }}"
+          if [ -z "$REGISTRY" ]; then
+            REGISTRY="${{ secrets.NEXUS_HOST }}"
+          fi
+          
+          echo "IMAGE_REGISTRY=$REGISTRY" >> .env
+          echo "IMAGE_TAG=$DEPLOY_VERSION" >> .env
+          echo "VERSION=$DEPLOY_VERSION" >> .env
+
+      - name: SCP to VM
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ vars.VM_HOST }} >> ~/.ssh/known_hosts
+
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes \
+            docker-compose.yml .env deploy.sh \
+            ${{ secrets.VM_USER }}@${{ vars.VM_HOST }}:~/
+
+      - name: Deploy via SSH
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes ${{ secrets.VM_USER }}@${{ vars.VM_HOST }} << 'EOF'
+            cd ~/
+            
+            REGISTRY="${{ vars.IMAGE_REGISTRY }}"
+            if [ -z "$REGISTRY" ]; then
+              REGISTRY="${{ secrets.NEXUS_HOST }}"
+            fi
+
+            if [ "$REGISTRY" == "ghcr.io" ]; then
+              echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            else
+              echo "${{ secrets.NEXUS_REPO_PASS }}" | docker login $REGISTRY -u ${{ secrets.NEXUS_REPO_USER }} --password-stdin
+            fi
+
+            docker compose pull
+            docker compose up -d --remove-orphans --force-recreate
+            docker image prune -f
+          EOF
+
+      - name: Health check
+        run: |
+          curl -f http://${{ vars.VM_HOST }}:8881/health  exit 1
 
       
