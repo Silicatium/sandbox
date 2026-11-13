@@ -100,10 +100,11 @@ jobs:
 
           echo "${{ secrets.APP_ENV_FILE }}" > .env
           
-          REGISTRY="${{ vars.IMAGE_REGISTRY }}"
-          if [ -z "$REGISTRY" ]; then
-            REGISTRY="${{ secrets.NEXUS_HOST }}"
-          fi
+          #REGISTRY="${{ vars.IMAGE_REGISTRY }}"
+          #if [ -z "$REGISTRY" ]; then
+          #  REGISTRY="${{ secrets.NEXUS_HOST }}"
+          #fi
+          REGISTRY="ghcr.io"
           
           echo "IMAGE_REGISTRY=$REGISTRY" >> .env
           echo "IMAGE_TAG=$DEPLOY_VERSION" >> .env
@@ -125,10 +126,11 @@ jobs:
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             cd ~/
             
-            REGISTRY="${{ secrets.IMAGE_REGISTRY }}"
-            if [ -z "$REGISTRY" ]; then
-              REGISTRY="${{ secrets.NEXUS_HOST }}"
-            fi
+            #REGISTRY="${{ secrets.IMAGE_REGISTRY }}"
+            #if [ -z "$REGISTRY" ]; then
+            #  REGISTRY="${{ secrets.NEXUS_HOST }}"
+            #fi
+            REGISTRY="ghcr.io"
 
             if [ "$REGISTRY" == "ghcr.io" ]; then
               echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
