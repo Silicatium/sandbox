@@ -1,0 +1,22 @@
+services:
+  backend:
+    image: silicatium/sandbox-backend:latest
+    container_name: sandbox-backend-container
+    networks:
+      - sandbox-net
+    restart: unless-stopped
+
+  frontend:
+    image: silicatium/sandbox-frontend:latest
+    container_name: sandbox-frontend-container
+    ports:
+      - "8881:8888"
+    depends_on:
+      - backend
+    networks:
+      - sandbox-net
+    restart: unless-stopped
+
+networks:
+  sandbox-net:
+    driver: bridge
