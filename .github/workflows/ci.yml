@@ -114,18 +114,18 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ vars.VM_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes \
             docker-compose.yml .env deploy.sh \
-            ${{ secrets.VM_USER }}@${{ vars.VM_HOST }}:~/
+            ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/
 
       - name: Deploy via SSH
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes ${{ secrets.VM_USER }}@${{ vars.VM_HOST }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             cd ~/
             
-            REGISTRY="${{ vars.IMAGE_REGISTRY }}"
+            REGISTRY="${{ secrets.IMAGE_REGISTRY }}"
             if [ -z "$REGISTRY" ]; then
               REGISTRY="${{ secrets.NEXUS_HOST }}"
             fi
@@ -143,6 +143,6 @@ jobs:
 
       - name: Health check
         run: |
-          curl -f http://${{ vars.VM_HOST }}:8881/health  exit 1
+          curl -f http://${{ secrets.VM_HOST }}:8881/health  exit 1
 
       
