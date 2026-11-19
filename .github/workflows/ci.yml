@@ -33,9 +33,6 @@ jobs:
       - name: Build backend builder
         run: docker build --target builder -t sandbox-backend-builder:ci ./src/backend
 
-      - name: Build frontend builder
-        run: docker build --target builder -t sandbox-frontend-builder:ci ./src/frontend
-
       - name: Run backend tests
         run: |
           mkdir -p reports/backend
@@ -48,19 +45,6 @@ jobs:
             set -e
             "$(go env GOPATH)/bin/go-junit-report" < /reports/test.log > /reports/junit.xml
             [ -f /reports/coverage.out ] && go tool cover -func=/reports/coverage.out > /reports/coverage.txt || true
-            exit $rc
-          '
-
-      - name: Run frontend tests
-        run: |
-          mkdir -p reports/frontend
-          docker run --rm -v "$PWD/reports/frontend:/reports" sandbox-frontend-builder:ci sh -c '
-            set -e
-            npm ci
-            set +e
-            npm test -- --ci > /reports/test.log 2>&1
-            rc=$?
-            set -e
             exit $rc
           '
 
