@@ -10,6 +10,10 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   version:
     runs-on: ubuntu-latest
@@ -21,12 +25,60 @@ jobs:
         id: version
 
       
-  build:
-    needs: version
+  test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend builder
+        run: docker build --target builder -t sandbox-backend-builder:ci ./src/backend
+
+      - name: Build frontend builder
+        run: docker build --target builder -t sandbox-frontend-builder:ci ./src/frontend
+
+      - name: Run backend tests
+        run: |
+          mkdir -p reports/backend
+          docker run --rm -v "$PWD/reports/backend:/reports" sandbox-backend-builder:ci sh -c '
+            set -e
+            go install github.com/jstemmer/go-junit-report/v2@v2.1.0
+            set +e
+            CGO_ENABLED=0 go test -v -coverprofile=/reports/coverage.out ./... > /reports/test.log 2>&1
+            rc=$?
+            set -e
+            "$(go env GOPATH)/bin/go-junit-report" < /reports/test.log > /reports/junit.xml
+            [ -f /reports/coverage.out ] && go tool cover -func=/reports/coverage.out > /reports/coverage.txt || true
+            exit $rc
+          '
+
+      - name: Run frontend tests
+        run: |
+          mkdir -p reports/frontend
+          docker run --rm -v "$PWD/reports/frontend:/reports" sandbox-frontend-builder:ci sh -c '
+            set -e
+            npm ci
+            set +e
+            npm test -- --ci > /reports/test.log 2>&1
+            rc=$?
+            set -e
+            exit $rc
+          '
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: reports/
+          if-no-files-found: warn
+
+
+  build:
+    needs: [version, test]
+    runs-on: ubuntu-latest
+    concurrency:
+      group: build-${{ github.ref }}
+      cancel-in-progress: true
     strategy:
       matrix:
         component: [backend, frontend]
@@ -88,6 +140,9 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/lab3'
     needs: [version, build]
     runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     steps:
       - name: Checkout 
         uses: actions/checkout@v4
