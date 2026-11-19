@@ -100,10 +100,10 @@ jobs:
 
           echo "${{ secrets.APP_ENV_FILE }}" > .env
           
-          #REGISTRY="${{ vars.IMAGE_REGISTRY }}"
-          #if [ -z "$REGISTRY" ]; then
-          #  REGISTRY="${{ secrets.NEXUS_HOST }}"
-          #fi
+          REGISTRY="${{ vars.IMAGE_REGISTRY }}"
+          if [ -z "$REGISTRY" ]; then
+            REGISTRY="${{ secrets.NEXUS_HOST }}"
+          fi
           REGISTRY="ghcr.io"
           
           echo "IMAGE_REGISTRY=$REGISTRY" >> .env
@@ -126,10 +126,10 @@ jobs:
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
             cd ~/
             
-            #REGISTRY="${{ secrets.IMAGE_REGISTRY }}"
-            #if [ -z "$REGISTRY" ]; then
-            #  REGISTRY="${{ secrets.NEXUS_HOST }}"
-            #fi
+            REGISTRY="${{ secrets.IMAGE_REGISTRY }}"
+            if [ -z "$REGISTRY" ]; then
+              REGISTRY="${{ secrets.NEXUS_HOST }}"
+            fi
             REGISTRY="ghcr.io"
 
             if [ "$REGISTRY" == "ghcr.io" ]; then
@@ -138,13 +138,13 @@ jobs:
               echo "${{ secrets.NEXUS_REPO_PASS }}" | docker login $REGISTRY -u ${{ secrets.NEXUS_REPO_USER }} --password-stdin
             fi
 
-            sudo docker compose pull
-            sudo docker compose up -d --remove-orphans --force-recreate
-            sudo docker image prune -f
+            docker compose pull
+            docker compose up -d --remove-orphans --force-recreate
+            docker image prune -f
           EOF
 
       - name: Health check
         run: |
-          curl -f http://${{ secrets.VM_HOST }}:8881/health  exit 1
+          curl -f http://${{ secrets.VM_HOST }}:8881/health || exit 1
 
       
