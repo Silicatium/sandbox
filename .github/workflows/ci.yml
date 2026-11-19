@@ -65,9 +65,10 @@ jobs:
         uses: docker/metadata-action@v5
         id: meta
         with:
+          # ${{ secrets.NEXUS_HOST }}/yanbaevmm-${{ matrix.component }}-docker/sandbox-${{ matrix.component }}
           images: |
             ghcr.io/${{ github.repository_owner }}/sandbox-${{ matrix.component }}
-            ${{ secrets.NEXUS_HOST }}/yanbaevmm-${{ matrix.component }}-docker/sandbox-${{ matrix.component }}
+            
           tags: |
             type=raw,value=${{ needs.version.outputs.version }}
             type=sha,format=short
