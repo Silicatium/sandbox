@@ -120,71 +120,71 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/lab3'
-    needs: [version, build]
-    runs-on: ubuntu-latest
-    concurrency:
-      group: deploy-production
-      cancel-in-progress: false
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v4
+  # deploy:
+  #   if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/lab3'
+  #   needs: [version, build]
+  #   runs-on: ubuntu-latest
+  #   concurrency:
+  #     group: deploy-production
+  #     cancel-in-progress: false
+  #   steps:
+  #     - name: Checkout 
+  #       uses: actions/checkout@v4
 
-      - name: Prepare .env
-        run: |
-          DEPLOY_VERSION="${{ github.event.inputs.VERSION }}"
-          if [ -z "$DEPLOY_VERSION" ]; then
-            DEPLOY_VERSION="${{ needs.version.outputs.version }}"
-          fi
+  #     - name: Prepare .env
+  #       run: |
+  #         DEPLOY_VERSION="${{ github.event.inputs.VERSION }}"
+  #         if [ -z "$DEPLOY_VERSION" ]; then
+  #           DEPLOY_VERSION="${{ needs.version.outputs.version }}"
+  #         fi
 
-          echo "${{ secrets.APP_ENV_FILE }}" > .env
+  #         echo "${{ secrets.APP_ENV_FILE }}" > .env
           
-          REGISTRY="${{ vars.IMAGE_REGISTRY }}"
-          if [ -z "$REGISTRY" ]; then
-            REGISTRY="${{ secrets.NEXUS_HOST }}"
-          fi
-          REGISTRY="ghcr.io"
+  #         REGISTRY="${{ vars.IMAGE_REGISTRY }}"
+  #         if [ -z "$REGISTRY" ]; then
+  #           REGISTRY="${{ secrets.NEXUS_HOST }}"
+  #         fi
+  #         REGISTRY="ghcr.io"
           
-          echo "IMAGE_REGISTRY=$REGISTRY" >> .env
-          echo "IMAGE_TAG=$DEPLOY_VERSION" >> .env
-          echo "VERSION=$DEPLOY_VERSION" >> .env
+  #         echo "IMAGE_REGISTRY=$REGISTRY" >> .env
+  #         echo "IMAGE_TAG=$DEPLOY_VERSION" >> .env
+  #         echo "VERSION=$DEPLOY_VERSION" >> .env
 
-      - name: SCP to VM
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+  #     - name: SCP to VM
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
+  #         chmod 600 ~/.ssh/id_rsa
+  #         ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes \
-            src/docker-compose.yml .env \
-            ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/
+  #         scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes \
+  #           src/docker-compose.yml .env \
+  #           ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/
 
-      - name: Deploy via SSH
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
-            cd ~/
+  #     - name: Deploy via SSH
+  #       run: |
+  #         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+  #           cd ~/
             
-            REGISTRY="${{ secrets.IMAGE_REGISTRY }}"
-            if [ -z "$REGISTRY" ]; then
-              REGISTRY="${{ secrets.NEXUS_HOST }}"
-            fi
-            REGISTRY="ghcr.io"
+  #           REGISTRY="${{ secrets.IMAGE_REGISTRY }}"
+  #           if [ -z "$REGISTRY" ]; then
+  #             REGISTRY="${{ secrets.NEXUS_HOST }}"
+  #           fi
+  #           REGISTRY="ghcr.io"
 
-            if [ "$REGISTRY" == "ghcr.io" ]; then
-              echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            else
-              echo "${{ secrets.NEXUS_REPO_PASS }}" | docker login $REGISTRY -u ${{ secrets.NEXUS_REPO_USER }} --password-stdin
-            fi
+  #           if [ "$REGISTRY" == "ghcr.io" ]; then
+  #             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+  #           else
+  #             echo "${{ secrets.NEXUS_REPO_PASS }}" | docker login $REGISTRY -u ${{ secrets.NEXUS_REPO_USER }} --password-stdin
+  #           fi
 
-            docker compose pull
-            docker compose up -d --remove-orphans --force-recreate
-            docker image prune -f
-          EOF
+  #           docker compose pull
+  #           docker compose up -d --remove-orphans --force-recreate
+  #           docker image prune -f
+  #         EOF
 
-      - name: Health check
-        run: |
-          curl -f http://${{ secrets.VM_HOST }}:8881/health || exit 1
+  #     - name: Health check
+  #       run: |
+  #         curl -f http://${{ secrets.VM_HOST }}:8881/health || exit 1
 
       
