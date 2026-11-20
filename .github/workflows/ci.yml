@@ -3,12 +3,12 @@ name: ci
 on:
   push:
     branches: ["**"]
-  workflow_dispatch:
-    inputs:
-      VERSION:
-        description: "Версия для повторного деплоя или отката (например, 20261111-101500). Пусто — собрать новую."
-        required: false
-        type: string
+  # workflow_dispatch:
+  #   inputs:
+  #     VERSION:
+  #       description: "Версия для повторного деплоя или отката (например, 20261111-101500). Пусто — собрать новую."
+  #       required: false
+  #       type: string
 
 permissions:
   contents: read
@@ -61,7 +61,7 @@ jobs:
     needs: [version, test]
     runs-on: ubuntu-latest
     concurrency:
-      group: build-${{ github.ref }}
+      group: build-${{ github.ref }}-${{ matrix.component }}
       cancel-in-progress: true
     strategy:
       matrix:
