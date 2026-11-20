@@ -10,8 +10,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
-
 
 jobs:
   deploy:
@@ -36,7 +34,7 @@ jobs:
           install -m 600 /dev/null "$RUNNER_TEMP/yc-sa-key.json"
           printf '%s' "$YC_SA_KEY" > "$RUNNER_TEMP/yc-sa-key.json"
 
-          yc config profile create ci
+          yc config profile create default
           yc config set service-account-key "$RUNNER_TEMP/yc-sa-key.json"
           yc config set folder-id "$YC_FOLDER_ID"
       
@@ -44,14 +42,16 @@ jobs:
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
-          sed -i 's|C:\\Users\\1\\yandex-cloud\\bin\\yc.exe|yc|g' ~/.kube/config
-          sed -i 's|--profile=default|--profile=ci|g' ~/.kube/config
           chmod 600 ~/.kube/config
+          sed -i 's|command: .*/yc$|command: yc|' ~/.kube/config
+          kubectl config use-context yc-sandbox
 
       - name: Verify cluster access
         run: |
-          cat ~/.kube/config
-          kubectl cluster-info
+          kubectl config current-context
+          kubectl get pods -n default
+          kubectl auth can-i create deployments -n default
+          kubectl auth can-i create services -n default
 
       - name: Install Helm
         uses: azure/setup-helm@v4.1.0
@@ -60,7 +60,7 @@ jobs:
 
       - name: Deploy with Helm
         run: |
-          helm upgrade --install myapp ./helm/myapp \
-            --set image.tag=${{ github.event.inputs.version }} \
+          helm upgrade --install sandbox ./helm/sandbox \
+            --set image.tag="${{ inputs.VERSION }}" \
             --namespace default \
             --wait
