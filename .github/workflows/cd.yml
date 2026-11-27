@@ -1,6 +1,8 @@
 name: cd
 
 on:
+  # push:
+  #   branches: ["**"]
   workflow_dispatch:
     inputs:
       VERSION:
@@ -10,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   deploy:
@@ -20,6 +23,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.VERSION }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION="sha-${GITHUB_SHA::7}"
+          fi
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Deploying image tag: $VERSION"
 
       - name: Install yc
         run: |
@@ -61,6 +77,6 @@ jobs:
       - name: Deploy with Helm
         run: |
           helm upgrade --install sandbox ./helm/sandbox \
-            --set image.tag="${{ inputs.VERSION }}" \
+            --set image.tag="${{ steps.version.outputs.value }}" \
             --namespace default \
             --wait

@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sandbox-postgres
+  labels:
+    app: sandbox-postgres
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: sandbox-postgres
+  template:
+    metadata:
+      labels:
+        app: sandbox-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.image.postgres | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: {{ .Values.ports.postgres }}
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.secretName }}
+                  key: DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.secretName }}
+                  key: DB_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.secretName }}
+                  key: DB_NAME
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: sandbox-postgres-data

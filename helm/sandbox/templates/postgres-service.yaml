@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: sandbox-postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: sandbox-postgres
+  ports:
+    - name: postgres
+      port: {{ .Values.ports.postgres }}
+      targetPort: postgres
