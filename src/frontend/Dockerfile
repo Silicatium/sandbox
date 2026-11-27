@@ -29,4 +29,4 @@ COPY --from=builder /usr/src/myapp/build/frontend-${VERSION}/dist ./dist
 
 EXPOSE 8888
 
-CMD ["http-server", "dist", "-p", "8888", "--host", "0.0.0.0", "-P", "http://sandbox-backend-container:8081"]
+CMD ["http-server", "dist", "-p", "8888", "--host", "0.0.0.0", "-P", "http://sandbox-backend:8081"]

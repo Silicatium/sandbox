@@ -1,7 +1,7 @@
 services:
   backend:
     image: silicatium/sandbox-backend:latest
-    container_name: sandbox-backend-container
+    container_name: sandbox-backend
     networks:
       - sandbox-net
     restart: unless-stopped
