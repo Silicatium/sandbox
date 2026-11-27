@@ -66,6 +66,9 @@ const store: Store<State> = createStore({
       }
 
     },
+    clearCart(state) {
+      state.cart = {};
+    },
     removeFromCart(state, product: ProductModel) {
       delete state.cart[getIdString(product)];
     },
