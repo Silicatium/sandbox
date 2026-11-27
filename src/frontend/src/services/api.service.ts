@@ -34,10 +34,6 @@ class ApiService {
     return axios.post(url, data, { headers: await this.getHeaders() }).then(r => r.data);
   }
 
-  static async postNoCsrf(url: string, data?: any) {
-    return axios.post(url, data).then(r => r.data);
-  }
-
   static async put(url: string, data?: any) {
     return axios.put(url, data, { headers: await this.getHeaders() }).then(r => r.data);
   }
